@@ -10,8 +10,6 @@ var FormView = {
     // Stop the browser from submitting the form
     event.preventDefault();
 
-    console.log('submitting form');
-
     var message = {
       username: App.username,
       text: FormView.$form.find('#message').val(),

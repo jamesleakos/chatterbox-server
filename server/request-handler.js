@@ -1,17 +1,20 @@
 const url = require('url');
 const messages = [
-  {
-    username: 'james',
-    text: 'llkdjflksdf'
-  },
-  {
-    username: 'william',
-    text: 'hi james'
-  },
-  {
-    username: 'james',
-    text: 'hi william'
-  }
+  // {
+  //   username: 'james',
+  //   text: 'llkdjflksdf',
+  //   message_id: 0
+  // },
+  // {
+  //   username: 'william',
+  //   text: 'hi james',
+  //   message_id: 1
+  // },
+  // {
+  //   username: 'james',
+  //   text: 'hi william',
+  //   message_id: 2
+  // }
 ];
 /***************************************************s**********
 
@@ -28,77 +31,53 @@ this file and include it in basic-server.js so that it actually works.
 **************************************************************/
 
 var requestHandler = function(request, response) {
-  // Request and Response come from node's http module.
-  //
-  // They include information about both the incoming request, such as
-  // headers and URL, and about the outgoing response, such as its status
-  // and content.
-  //
-  // Documentation for both request and response can be found in the HTTP section at
-  // http://nodejs.org/documentation/api/
-
-  // Do some basic logging.
-  //
-  // Adding more logging to your server can be an easy way to get passive
-  // debugging help, but you should always be careful about leaving stray
-  // console.logs in your code.
   console.log('Serving request type ' + request.method + ' for url ' + request.url);
 
-  // The outgoing status.
   var statusCode = 200;
-  // Tell the client we are sending them plain text.
-  // See the note below about CORS headers.
   var headers = defaultCorsHeaders;
-  // You will need to change this if you are sending something
-  // other than plain text, like JSON or HTML.
-  headers['Content-Type'] = 'text/plain';
-  // headers['Content-Type'] = 'application/json';
+  var dataToSend = null;
 
   const path = url.parse(request.url).path;
   const { method } = request;
 
-  console.log('path is ' + path);
-
   if (path === '/classes/messages') {
-    // .writeHead() writes to the request line and headers of the response,
-    // which includes the status and all headers.
-    // response.writeHead(statusCode, headers);
+    response.writeHead(statusCode, headers);
+    switch (method) {
 
-    if (method === 'GET') {
-      // Calling .end "flushes" the response's internal buffer, forcing
-      // node to actually send all the data over to the client.
-      headers['Content-Type'] = 'application/json'
-      response.writeHead(statusCode, headers);
-      // response.send(JSON.stringify(messages));
-      // response.end();
-      response.end(JSON.stringify(messages));
-    } else if (method === 'POST') {
-      statusCode = 201
-      console.log('trigger');
-      response.writeHead(statusCode, headers);
+    case 'GET':
+      headers['Content-Type'] = 'application/json';
+      dataToSend = JSON.stringify(messages);
+      Send(statusCode, headers, dataToSend, response);
+      break;
+    case 'POST':
+      headers['Content-Type'] = 'application/json';
+      statusCode = 201;
+      let body = [];
       request.on('data', function(chunk) {
         console.log('chunk: ' + JSON.parse(chunk));
-        messages.push(JSON.parse(chunk));
-      })
-      console.log('these are the messages after sending a post request')
-      console.log(messages);
-      response.end(JSON.stringify(messages));
-    } else if (method === 'OPTIONS') {
-      statusCode = 201
-      response.writeHead(statusCode, headers);
-      response.end();
+        body.push(chunk);
+      }).on('end', function () {
+        body = JSON.parse(Buffer.concat(body));
+        body.message_id = messages.length;
+        messages.unshift(body);
+        dataToSend = JSON.stringify(messages);
+        Send(statusCode, headers, dataToSend, response);
+      });
+      break;
+    case 'OPTIONS':
+      headers['Content-Type'] = 'text/plain';
+      Send(statusCode, headers, dataToSend, response);
+      break;
+    default:
+      statusCode = 405;
+      Send(statusCode, headers, dataToSend, response);
     }
   } else {
     statusCode = 404;
-    // .writeHead() writes to the request line and headers of the response,
-    // which includes the status and all headers.
-    response.writeHead(statusCode, headers);
-    response.end();
+    Send(statusCode, headers, dataToSend, response);
   }
-
-
-
-
+  // response.writeHead(statusCode, headers);
+  // response.end(dataToSend);
 };
 
 // These headers will allow Cross-Origin Resource Sharing (CORS).
@@ -110,6 +89,12 @@ var requestHandler = function(request, response) {
 //
 // Another way to get around this restriction is to serve you chat
 // client from this domain by setting up static file serving.
+
+var Send = function (statusCode, headers, dataToSend, response) {
+  response.writeHead(statusCode, headers);
+  response.end(dataToSend);
+};
+
 var defaultCorsHeaders = {
   'access-control-allow-origin': '*',
   'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
@@ -117,4 +102,6 @@ var defaultCorsHeaders = {
   'access-control-max-age': 10 // Seconds.
 };
 
-module.exports = requestHandler;
+
+
+module.exports.requestHandler = requestHandler;

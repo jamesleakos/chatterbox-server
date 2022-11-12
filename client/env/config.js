@@ -3,7 +3,7 @@
 
 // Put your parse application keys here!
 $.ajaxPrefilter(function (settings, _, jqXHR) {
-  jqXHR.setRequestHeader('Authorization', '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');
+  jqXHR.setRequestHeader('Authorization', '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');
 });
 
 // Put your campus prefix here

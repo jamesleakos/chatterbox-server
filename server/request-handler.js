@@ -45,7 +45,6 @@ var requestHandler = function(request, response) {
   console.log('Serving request type ' + request.method + ' for url ' + request.url);
 
   // The outgoing status.
-
   var statusCode = 200;
   // Tell the client we are sending them plain text.
   // See the note below about CORS headers.
@@ -53,25 +52,41 @@ var requestHandler = function(request, response) {
   // You will need to change this if you are sending something
   // other than plain text, like JSON or HTML.
   headers['Content-Type'] = 'text/plain';
+  // headers['Content-Type'] = 'application/json';
 
   const path = url.parse(request.url).path;
   const { method } = request;
 
-  // Get data
-  console.log('data: ' + request.data);
+  console.log('path is ' + path);
 
   if (path === '/classes/messages') {
     // .writeHead() writes to the request line and headers of the response,
     // which includes the status and all headers.
-    response.writeHead(statusCode, headers);
+    // response.writeHead(statusCode, headers);
 
     if (method === 'GET') {
       // Calling .end "flushes" the response's internal buffer, forcing
       // node to actually send all the data over to the client.
+      headers['Content-Type'] = 'application/json'
+      response.writeHead(statusCode, headers);
+      // response.send(JSON.stringify(messages));
+      // response.end();
       response.end(JSON.stringify(messages));
-
     } else if (method === 'POST') {
-
+      statusCode = 201
+      console.log('trigger');
+      response.writeHead(statusCode, headers);
+      request.on('data', function(chunk) {
+        console.log('chunk: ' + JSON.parse(chunk));
+        messages.push(JSON.parse(chunk));
+      })
+      console.log('these are the messages after sending a post request')
+      console.log(messages);
+      response.end(JSON.stringify(messages));
+    } else if (method === 'OPTIONS') {
+      statusCode = 201
+      response.writeHead(statusCode, headers);
+      response.end();
     }
   } else {
     statusCode = 404;
